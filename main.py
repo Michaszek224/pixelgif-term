@@ -66,18 +66,22 @@ def compute_size(img: Image.Image) -> tuple[int, int]:
 
 def play(frames: list[np.ndarray], durations: list[int]) -> None:
     if len(frames) == 1:
-        print_frame(frames[0])
+        print(render_frame(frames[0]))
         return
 
     print("\033[?25l", end="")  # hide cursor
     print("\033[?1049h", end="")  # alternative screen
+
     try:
+        rendered = []
+        for frame in frames:
+            rendered.append(render_frame(frame))
         while True:
-            zipped = zip(frames, durations)
-            for frame, ms in zipped:
+            zipped = zip(rendered, durations)
+            for rendered_frame, ms in zipped:
                 print("\033[H", end="")  # cursor to top left
 
-                print_frame(frame)
+                print(rendered_frame, end="", flush=True)  # printing pre-rendered frame
                 if ms == 0:
                     ms = 100
                 time.sleep(ms / 1000)
@@ -88,7 +92,7 @@ def play(frames: list[np.ndarray], durations: list[int]) -> None:
         print("\033[?1049l", end="")  # back to terminal before gif
 
 
-def print_frame(array: np.ndarray) -> None:
+def render_frame(array: np.ndarray) -> str:
     rows, columns, _ = array.shape
     rows = rows - rows % 2  # in case of odd rows
 
@@ -104,8 +108,7 @@ def print_frame(array: np.ndarray) -> None:
                 "\033[0m"  # reseting to default
             )
         parts.append("\n")
-    sys.stdout.write("".join(parts))  # one print per frame, instead of print per pixel
-    sys.stdout.flush()  # and write it :D
+    return "".join(parts)
 
 
 def main() -> None:
