@@ -1,8 +1,9 @@
 from PIL import Image
 import numpy as np
-import os
 import argparse
+import shutil
 import time
+import sys
 
 
 def load_frames(path: str, width: int | None) -> tuple[list[np.ndarray], list[int]]:
@@ -25,17 +26,18 @@ def load_frames(path: str, width: int | None) -> tuple[list[np.ndarray], list[in
 
 
 def compute_size(img: Image.Image, width: int | None) -> tuple[int, int]:
-    columns, lines = os.get_terminal_size()
+    columns, lines = shutil.get_terminal_size()
     if width is not None:
         columns = width
-    max_w = columns
-    max_h = (lines - 2) * 2  # again columns are bigger then rows
+
+    max_w = max(1, columns)  # width cant be 0
+    max_h = max(2, (lines - 2) * 2)  # again columns are bigger then rows
 
     # scalling to terminal size
     w, h = img.size
 
     scale = min(max_w / w, max_h / h, 1)
-    new_size = (int(w * scale), int(h * scale))
+    new_size = max(1, int(w * scale)), max(1, int(h * scale))  # handling bad scaling
 
     return new_size
 
@@ -45,43 +47,43 @@ def play(frames: list[np.ndarray], duration: list[int]) -> None:
         print_frame(frames[0])
         return
 
-    n = frames[0].shape[0] // 2
-    first = False
-
     print("\033[?25l", end="")  # hide cursor
+    print("\033[?1049h", end="")  # alternative screen
     try:
         while True:
             zipped = zip(frames, duration)
             for frame, ms in zipped:
-                if not first:
-                    print(f"\033[{n}A", end="")  # cursor on start frame before
+                print("\033[H", end="")  # cursor on start frame before
 
                 print_frame(frame)
                 if ms == 0:
                     ms = 100
                 time.sleep(ms / 1000)
     except KeyboardInterrupt:
-        print()
+        pass
     finally:
         print("\033[?25h", end="")  # show cursor
+        print("\033[?1049l", end="")  # back to terminal before gif
 
 
 def print_frame(array: np.ndarray) -> None:
     rows, columns, _ = array.shape
     rows = rows - rows % 2  # in case of odd rows
 
+    parts = []
     for row in range(0, rows, 2):  # usuall column * 2 = row
         for column in range(columns):
             r1, g1, b1 = array[row, column]
             r2, g2, b2 = array[row + 1, column]
-            print(
+            parts.append(
                 f"\033[38;2;{r1};{g1};{b1}m"  # character colour (foreground) --> upper pixel
                 f"\033[48;2;{r2};{g2};{b2}m"  # background colour ---> bottom piksel
                 "▀"  # writing block
-                "\033[0m",  # reseting to default
-                end="",  # no new line
+                "\033[0m"  # reseting to default
             )
-        print()
+        parts.append("\n")
+    sys.stdout.write("".join(parts))  # one print per frame, instead of print per pixel
+    sys.stdout.flush()  # and write it :D
 
 
 def main() -> None:
@@ -93,8 +95,12 @@ def main() -> None:
     parser.add_argument("--width", type=int, default=None, help="width of pixel art")
     args = parser.parse_args()
 
-    frames, duration = load_frames(args.path, width=args.width)
-    play(frames, duration)
+    try:
+        frames, durations = load_frames(args.path, width=args.width)
+    except FileNotFoundError:
+        parser.error(f"File not found: {args.path}")
+
+    play(frames, durations)
 
 
 if __name__ == "__main__":
