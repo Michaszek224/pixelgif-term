@@ -26,6 +26,24 @@ def load_frames(path: str) -> tuple[list[np.ndarray], list[int]]:
     return frames, durations
 
 
+def cell_ratio(default: float = 2.0) -> float:
+    # works only on unix machines, sry windows users :(
+    try:
+        import fcntl
+        import struct
+        import termios
+
+        packed = fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, b"\0" * 8)
+        rows, cols, xpix, ypix = struct.unpack("HHHH", packed)
+    except (ImportError, OSError):
+        return default
+
+    if not (rows and cols and xpix and ypix):
+        return default
+
+    return (ypix / rows) / (xpix / cols)
+
+
 def compute_size(img: Image.Image) -> tuple[int, int]:
     columns, lines = shutil.get_terminal_size()
 
@@ -34,9 +52,14 @@ def compute_size(img: Image.Image) -> tuple[int, int]:
 
     # scalling to terminal size
     w, h = img.size
+    correction = cell_ratio() / 2
+    h_corrected = h / correction
 
-    scale = min(max_w / w, max_h / h, 1)
-    new_size = max(1, int(w * scale)), max(1, int(h * scale))  # handling bad scaling
+    scale = min(max_w / w, max_h / h_corrected, 1)
+    new_size = (
+        max(1, int(w * scale)),
+        max(1, int(h_corrected * scale)),
+    )  # handling bad scaling
 
     return new_size
 
