@@ -2,9 +2,55 @@ from PIL import Image
 import numpy as np
 import os
 import argparse
+import time
 
 
-def print_in_terminal(array: np.ndarray):
+def load_frames(path: str, width: int) -> tuple[list[np.ndarray], list[int]]:
+    img = Image.open(path)
+    frames_count = getattr(img, "n_frames", 1)
+
+    new_size = compute_size(img, width)
+    frames = []
+    durations = []
+
+    for i in range(frames_count):
+        img.seek(i)
+        img_changed = img.convert("RGB")  # if case of argb, we dont need alpha channel
+        array = np.array(img_changed.resize(new_size))
+        frames.append(array)
+        duration = img.info.get("duration", 100)
+        durations.append(duration)
+
+    return frames, durations
+
+
+def compute_size(img: Image.Image, width: int) -> tuple[int, int]:
+    columns, lines = os.get_terminal_size()
+    if width is not None:
+        columns = width
+    max_w = columns
+    max_h = (lines - 2) * 2  # again columns are bigger then rows
+
+    # scalling to terminal size
+    w, h = img.size
+
+    scale = min(max_w / w, max_h / h, 1)
+    new_size = (int(w * scale), int(h * scale))
+
+    return new_size
+
+
+def print_in_terminal(frames: list[np.ndarray], duration: list[int]) -> None:
+    while True:
+        zipped = zip(frames, duration)
+        for frame, ms in zipped:
+            print_frame(frame)
+            time.sleep(ms / 1000)
+            n = frame.shape[0] // 2
+            print(f"\033[{n}A", end="")
+
+
+def print_frame(array: np.ndarray) -> None:
     rows, columns, _ = array.shape
     rows = rows - rows % 2  # in case of odd rows
 
@@ -22,26 +68,7 @@ def print_in_terminal(array: np.ndarray):
         print()
 
 
-def load_and_resize(path: str, width: int) -> np.ndarray:
-    img = Image.open(path)
-    img = img.convert("RGB")  # if case of argb, we dont need alpha channel
-
-    columns, lines = os.get_terminal_size()
-    if width is not None:
-        columns = width
-    max_w = columns
-    max_h = (lines - 2) * 2  # again columns are bigger then rows
-
-    # scalling to terminal size
-    w, h = img.size
-    scale = min(max_w / w, max_h / h)
-    new_size = (int(w * scale), int(h * scale))
-
-    array = np.array(img.resize(new_size))
-    return array
-
-
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Image for pixel art in terminal")
     parser.add_argument(
         "path",
@@ -50,8 +77,8 @@ def main():
     parser.add_argument("--width", type=int, default=None, help="width of pixel art")
     args = parser.parse_args()
 
-    array = load_and_resize(f"images/{args.path}", width=args.width)
-    print_in_terminal(array)
+    frames, duration = load_frames(f"images/{args.path}", width=args.width)
+    print_in_terminal(frames, duration)
 
 
 if __name__ == "__main__":
