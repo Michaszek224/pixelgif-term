@@ -5,7 +5,7 @@ import argparse
 import time
 
 
-def load_frames(path: str, width: int) -> tuple[list[np.ndarray], list[int]]:
+def load_frames(path: str, width: int | None) -> tuple[list[np.ndarray], list[int]]:
     img = Image.open(path)
     frames_count = getattr(img, "n_frames", 1)
 
@@ -24,7 +24,7 @@ def load_frames(path: str, width: int) -> tuple[list[np.ndarray], list[int]]:
     return frames, durations
 
 
-def compute_size(img: Image.Image, width: int) -> tuple[int, int]:
+def compute_size(img: Image.Image, width: int | None) -> tuple[int, int]:
     columns, lines = os.get_terminal_size()
     if width is not None:
         columns = width
@@ -40,11 +40,17 @@ def compute_size(img: Image.Image, width: int) -> tuple[int, int]:
     return new_size
 
 
-def print_in_terminal(frames: list[np.ndarray], duration: list[int]) -> None:
+def play(frames: list[np.ndarray], duration: list[int]) -> None:
+    print(len(frames))
+    if len(frames) == 1:
+        print_frame(frames[0])
+        return
     while True:
         zipped = zip(frames, duration)
         for frame, ms in zipped:
             print_frame(frame)
+            if ms == 0:
+                ms = 100
             time.sleep(ms / 1000)
             n = frame.shape[0] // 2
             print(f"\033[{n}A", end="")
@@ -78,7 +84,7 @@ def main() -> None:
     args = parser.parse_args()
 
     frames, duration = load_frames(f"images/{args.path}", width=args.width)
-    print_in_terminal(frames, duration)
+    play(frames, duration)
 
 
 if __name__ == "__main__":
