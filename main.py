@@ -1,9 +1,10 @@
-from PIL import Image
-import numpy as np
 import argparse
 import shutil
 import time
 import sys
+
+from PIL import Image
+import numpy as np
 
 
 def load_frames(path: str, width: int | None) -> tuple[list[np.ndarray], list[int]]:
@@ -16,7 +17,7 @@ def load_frames(path: str, width: int | None) -> tuple[list[np.ndarray], list[in
 
     for i in range(frames_count):
         img.seek(i)
-        img_changed = img.convert("RGB")  # if case of argb, we dont need alpha channel
+        img_changed = img.convert("RGB")  # if case of rgba, we dont need alpha channel
         array = np.array(img_changed.resize(new_size))
         frames.append(array)
         duration = img.info.get("duration", 100)
@@ -42,7 +43,7 @@ def compute_size(img: Image.Image, width: int | None) -> tuple[int, int]:
     return new_size
 
 
-def play(frames: list[np.ndarray], duration: list[int]) -> None:
+def play(frames: list[np.ndarray], durations: list[int]) -> None:
     if len(frames) == 1:
         print_frame(frames[0])
         return
@@ -51,9 +52,9 @@ def play(frames: list[np.ndarray], duration: list[int]) -> None:
     print("\033[?1049h", end="")  # alternative screen
     try:
         while True:
-            zipped = zip(frames, duration)
+            zipped = zip(frames, durations)
             for frame, ms in zipped:
-                print("\033[H", end="")  # cursor on start frame before
+                print("\033[H", end="")  # cursor to top left
 
                 print_frame(frame)
                 if ms == 0:
@@ -95,10 +96,15 @@ def main() -> None:
     parser.add_argument("--width", type=int, default=None, help="width of pixel art")
     args = parser.parse_args()
 
+    if args.width is not None and args.width < 1:
+        parser.error("--width must be at least 1")
+
     try:
         frames, durations = load_frames(args.path, width=args.width)
     except FileNotFoundError:
         parser.error(f"File not found: {args.path}")
+    except OSError as e:
+        parser.error(f"Cannot open image: {e}")
 
     play(frames, durations)
 
