@@ -7,11 +7,11 @@ from PIL import Image
 import numpy as np
 
 
-def load_frames(path: str, width: int | None) -> tuple[list[np.ndarray], list[int]]:
+def load_frames(path: str) -> tuple[list[np.ndarray], list[int]]:
     img = Image.open(path)
     frames_count = getattr(img, "n_frames", 1)
 
-    new_size = compute_size(img, width)
+    new_size = compute_size(img)
     frames = []
     durations = []
 
@@ -26,10 +26,8 @@ def load_frames(path: str, width: int | None) -> tuple[list[np.ndarray], list[in
     return frames, durations
 
 
-def compute_size(img: Image.Image, width: int | None) -> tuple[int, int]:
+def compute_size(img: Image.Image) -> tuple[int, int]:
     columns, lines = shutil.get_terminal_size()
-    if width is not None:
-        columns = width
 
     max_w = max(1, columns)  # width cant be 0
     max_h = max(2, (lines - 2) * 2)  # again columns are bigger then rows
@@ -93,14 +91,10 @@ def main() -> None:
         "path",
         help="path to image",
     )
-    parser.add_argument("--width", type=int, default=None, help="width of pixel art")
     args = parser.parse_args()
 
-    if args.width is not None and args.width < 1:
-        parser.error("--width must be at least 1")
-
     try:
-        frames, durations = load_frames(args.path, width=args.width)
+        frames, durations = load_frames(args.path)
     except FileNotFoundError:
         parser.error(f"File not found: {args.path}")
     except OSError as e:

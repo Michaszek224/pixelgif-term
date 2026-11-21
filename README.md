@@ -18,14 +18,9 @@ For example:
 
 ```
 uv run main.py cat.jpg
-uv run main.py dance.gif --width 60
 ```
 
 GIFs loop until you press `Ctrl+C`.
-
-### Options
-
-- `--width <columns>` – max width of the picture in terminal columns
 
 ### How it works
 
