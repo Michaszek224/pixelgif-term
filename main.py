@@ -41,19 +41,29 @@ def compute_size(img: Image.Image, width: int | None) -> tuple[int, int]:
 
 
 def play(frames: list[np.ndarray], duration: list[int]) -> None:
-    print(len(frames))
     if len(frames) == 1:
         print_frame(frames[0])
         return
-    while True:
-        zipped = zip(frames, duration)
-        for frame, ms in zipped:
-            print_frame(frame)
-            if ms == 0:
-                ms = 100
-            time.sleep(ms / 1000)
-            n = frame.shape[0] // 2
-            print(f"\033[{n}A", end="")
+
+    n = frames[0].shape[0] // 2
+    first = False
+
+    print("\033[?25l", end="")  # hide cursor
+    try:
+        while True:
+            zipped = zip(frames, duration)
+            for frame, ms in zipped:
+                if not first:
+                    print(f"\033[{n}A", end="")  # cursor on start frame before
+
+                print_frame(frame)
+                if ms == 0:
+                    ms = 100
+                time.sleep(ms / 1000)
+    except KeyboardInterrupt:
+        print()
+    finally:
+        print("\033[?25h", end="")  # show cursor
 
 
 def print_frame(array: np.ndarray) -> None:
@@ -78,12 +88,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Image for pixel art in terminal")
     parser.add_argument(
         "path",
-        help="name of image in images foler. Example: car.jpg for images/car.jpg",
+        help="path to image",
     )
     parser.add_argument("--width", type=int, default=None, help="width of pixel art")
     args = parser.parse_args()
 
-    frames, duration = load_frames(f"images/{args.path}", width=args.width)
+    frames, duration = load_frames(args.path, width=args.width)
     play(frames, duration)
 
 
