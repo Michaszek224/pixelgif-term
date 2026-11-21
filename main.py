@@ -81,9 +81,13 @@ def play(frames: list[np.ndarray], durations: list[int]) -> None:
         while True:
             zipped = zip(rendered, durations)
             for rendered_frame, ms in zipped:
-                print("\033[H", end="")  # cursor to top left
+                # printing whole frame as one to fix screen tearing
+                print(
+                    "\033[?2026h\033[H" + rendered_frame + "\033[?2026l",
+                    end="",
+                    flush=True,
+                )
 
-                print(rendered_frame, end="", flush=True)  # printing pre-rendered frame
                 if ms == 0:
                     ms = 100
 
