@@ -108,14 +108,16 @@ def play(frames: list[np.ndarray], durations: list[int]) -> None:
 
 
 def render_frame(array: np.ndarray) -> str:
-    rows, columns, _ = array.shape
+    rows = array.shape[0]
     rows = rows - rows % 2  # in case of odd rows
 
+    px = array.tolist()
+
     parts = []
-    for row in range(0, rows, 2):  # usuall column * 2 = row
-        for column in range(columns):
-            r1, g1, b1 = array[row, column]
-            r2, g2, b2 = array[row + 1, column]
+    for row in range(0, rows, 2):  # one terminal line = 2 pixel rows
+        top = px[row]
+        bottom = px[row + 1]
+        for (r1, g1, b1), (r2, g2, b2) in zip(top, bottom):
             parts.append(
                 f"\033[38;2;{r1};{g1};{b1}m"  # character colour (foreground) --> upper pixel
                 f"\033[48;2;{r2};{g2};{b2}m"  # background colour ---> bottom piksel
