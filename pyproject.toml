@@ -1,10 +1,10 @@
 [project]
-name = "image2pixelart"
+name = "pixelgif-term"
 version = "0.1.0"
-description = "Add your description here"
+description = "Show images and GIFs in the terminal with colored half-block characters"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
-    "numpy>=2.5.5",
-    "pillow>=13.0.0",
+    "numpy>=1.26",
+    "pillow>=10.1",
 ]
