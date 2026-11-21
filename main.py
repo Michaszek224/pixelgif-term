@@ -66,7 +66,7 @@ def compute_size(img: Image.Image) -> tuple[int, int]:
 
 def play(frames: list[np.ndarray], durations: list[int]) -> None:
     if len(frames) == 1:
-        print(render_frame(frames[0]))
+        print(render_frame(frames[0]), end="")
         return
 
     print("\033[?25l", end="")  # hide cursor
@@ -76,6 +76,8 @@ def play(frames: list[np.ndarray], durations: list[int]) -> None:
         rendered = []
         for frame in frames:
             rendered.append(render_frame(frame))
+
+        next_at = time.perf_counter()  # start timer
         while True:
             zipped = zip(rendered, durations)
             for rendered_frame, ms in zipped:
@@ -84,7 +86,16 @@ def play(frames: list[np.ndarray], durations: list[int]) -> None:
                 print(rendered_frame, end="", flush=True)  # printing pre-rendered frame
                 if ms == 0:
                     ms = 100
-                time.sleep(ms / 1000)
+
+                next_at += ms / 1000  # when new frame should be shown
+
+                # time to new frame, including time taken for prining
+                delay = next_at - time.perf_counter()
+                if delay > 0:
+                    time.sleep(delay)
+                else:
+                    next_at = time.perf_counter()
+
     except KeyboardInterrupt:
         pass
     finally:
